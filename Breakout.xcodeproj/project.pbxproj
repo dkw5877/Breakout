@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CE471F9F18DBCE6800EE68B6 /* BlockView.m in Sources */ = {isa = PBXBuildFile; fileRef = CE471F9E18DBCE6800EE68B6 /* BlockView.m */; };
 		D01C651818DB721400E86F7E /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D01C651718DB721400E86F7E /* Foundation.framework */; };
 		D01C651A18DB721400E86F7E /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D01C651918DB721400E86F7E /* CoreGraphics.framework */; };
 		D01C651C18DB721400E86F7E /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D01C651B18DB721400E86F7E /* UIKit.framework */; };
@@ -36,6 +37,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CE471F9D18DBCE6800EE68B6 /* BlockView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BlockView.h; sourceTree = "<group>"; };
+		CE471F9E18DBCE6800EE68B6 /* BlockView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BlockView.m; sourceTree = "<group>"; };
 		D01C651418DB721400E86F7E /* Breakout.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Breakout.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D01C651718DB721400E86F7E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		D01C651918DB721400E86F7E /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
@@ -127,6 +130,8 @@
 				D01C654D18DB74FE00E86F7E /* PaddleView.m */,
 				D01C652C18DB721400E86F7E /* ViewController.h */,
 				D01C652D18DB721400E86F7E /* ViewController.m */,
+				CE471F9D18DBCE6800EE68B6 /* BlockView.h */,
+				CE471F9E18DBCE6800EE68B6 /* BlockView.m */,
 				D01C652F18DB721400E86F7E /* Images.xcassets */,
 				D01C651E18DB721400E86F7E /* Supporting Files */,
 			);
@@ -259,6 +264,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CE471F9F18DBCE6800EE68B6 /* BlockView.m in Sources */,
 				D01C654E18DB74FE00E86F7E /* PaddleView.m in Sources */,
 				D01C652E18DB721400E86F7E /* ViewController.m in Sources */,
 				D03D445F18DB7D1A004E50D2 /* BallView.m in Sources */,
