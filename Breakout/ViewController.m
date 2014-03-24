@@ -11,11 +11,11 @@
 #import "BallView.h"
 #import "BlockView.h"
 
-#define BLOCK_WIDTH_EASY 40
-#define BLOCK_HEIGHT_EASY 40
-#define BLOCK_WIDTH_HARD 10
-#define BLOCK_HEIGHT_HARD 40
-#define NUMBER_ROWS 1
+#define BLOCK_WIDTH_EASY 50
+#define BLOCK_HEIGHT_EASY 50
+#define BLOCK_WIDTH_HARD 30
+#define BLOCK_HEIGHT_HARD 30
+#define NUMBER_ROWS 3
 
 
 #define VECTOR_UP (0.0,-1.0)
@@ -59,7 +59,7 @@
     
     [self initializeDynamicPaddleBehavior];
     
-    [self addBlocksToMainView];
+    [self addBlocksToMainView:NUMBER_ROWS withWidth:BLOCK_WIDTH_HARD height:BLOCK_HEIGHT_HARD];
 }
 
 #pragma mark - Initialization Methods for Dynamic Behaviors
@@ -81,6 +81,7 @@
     paddleDynamicBehavior = [[UIDynamicItemBehavior alloc]initWithItems:@[paddleView]];
     paddleDynamicBehavior.allowsRotation = NO;
     paddleDynamicBehavior.density = 1000;
+    paddleDynamicBehavior.elasticity = 1.0;
     [dynamicAnimator addBehavior:paddleDynamicBehavior];
 }
 
@@ -102,23 +103,13 @@
     pushBehavior = [[UIPushBehavior alloc]initWithItems:@[ballView] mode:UIPushBehaviorModeInstantaneous];
     pushBehavior.pushDirection = CGVectorMake(0.5,1.0);//down to right
     pushBehavior.active = YES;
-    pushBehavior.magnitude =  0.1;
+    pushBehavior.magnitude =  0.05;
     [dynamicAnimator addBehavior:pushBehavior];
 }
 
 
 #pragma mark - Method to modify existing behaviors
 
--(void)resetPushBehaviorWithVector:(CGVector)vector
-{
-    CGVector reversedDirection = vector;
-    pushBehavior = nil;
-    pushBehavior = [[UIPushBehavior alloc]initWithItems:@[ballView] mode:UIPushBehaviorModeInstantaneous];
-    pushBehavior.pushDirection = reversedDirection;
-    pushBehavior.active = YES;
-    pushBehavior.magnitude =  0.1;
-    [dynamicAnimator addBehavior:pushBehavior];
-}
 
 #pragma mark - Helper methods to create bricks with random colors
 /*
@@ -126,24 +117,25 @@
  * @param void
  * @return void
  */
--(void)addBlocksToMainView
+-(void)addBlocksToMainView:(int)numberOfRows withWidth:(int)blockWidth height:(int)blockHeight
 {
-    float yFudgeFactor = 0.0005;
+    float yFudgeFactor = 0.05;
     float xFudgeFactor = 0.01;
     float xOrigin = 0.0;
     float yOrigin = 0.0;
     NSMutableArray *dynamicItemsArray = [NSMutableArray new];
     
-    for (int col = 0; col < NUMBER_ROWS; col++)
+    for (int col = 0; col < numberOfRows; col++)
     {
-        for (int row = 0; row < self.view.frame.size.width/BLOCK_WIDTH_EASY; row++)
+        for (int row = 0; row < self.view.frame.size.width/blockWidth; row++)
         {
             //create the block
             //set the blocks position it in the view, the frame takes to CGPoint
             //parameters, the point of the frames origin in the superview, and the
             //point that represents the size of the view
-            BlockView *block = [[BlockView alloc]initWithFrame:CGRectMake(xOrigin, yOrigin, BLOCK_WIDTH_EASY, BLOCK_HEIGHT_EASY)];
+            BlockView *block = [[BlockView alloc]initWithFrame:CGRectMake(xOrigin, yOrigin, blockWidth, blockHeight)];
             block.backgroundColor = [self chooseARandomColorForBlock];
+            
             [self.view addSubview:block];
             
             //add the block to the array
@@ -155,19 +147,21 @@
             //keep a count of the total blocks
             numberOfBlocks++;
             
-            xOrigin += BLOCK_WIDTH_EASY + xFudgeFactor;
+            xOrigin += blockWidth + xFudgeFactor;
         }
         //reset the x origin for the next row
         xOrigin = 0.0;
         
         //increment the y origin by the block height
-        yOrigin += BLOCK_HEIGHT_EASY + yFudgeFactor;
+        yOrigin += blockHeight + yFudgeFactor;
     }
     
     //add the blocks to the block dynamic behavior
     blockDynamicBehavior = [[UIDynamicItemBehavior alloc]initWithItems:dynamicItemsArray];
-    blockDynamicBehavior.density = 1000.0;
-    blockDynamicBehavior.elasticity = 0.0;
+    blockDynamicBehavior.density = 1.0;
+    blockDynamicBehavior.elasticity = 0.5;
+    blockDynamicBehavior.friction = 0.0;
+    blockDynamicBehavior.allowsRotation = NO;
     dynamicItemsArray = nil;
 }
 
@@ -182,7 +176,6 @@
     float red = (arc4random()%256)/255.0;
     float green = (arc4random()%256)/255.0;
     float blue = (arc4random()%256)/255.0;
-    
     UIColor *color =[UIColor colorWithRed:red green:green blue:blue alpha:1.0];
     return color;
 }
@@ -204,13 +197,21 @@
  */
 -(void)resetGame
 {
+    //remove any remaining blocks not cleared
+    for (BlockView *block in self.view.subviews)
+    {
+        if ([block isKindOfClass:[BlockView class]])
+        {
+            [block removeFromSuperview];
+        }
+    }
     //move the ball back to the center
     ballView.center = CGPointMake(self.view.frame.size.width/2, self.view.frame.size.height/2);
     [dynamicAnimator updateItemUsingCurrentState:ballView];
-    [self addBlocksToMainView];
+    [self addBlocksToMainView:NUMBER_ROWS withWidth:BLOCK_WIDTH_HARD height:BLOCK_HEIGHT_HARD];
     
     //add a downward velocity
-    [ballDynamicBehavior addLinearVelocity:CGPointMake(200, 400.0) forItem:ballView];
+    [ballDynamicBehavior addLinearVelocity:CGPointMake(200, 200.0) forItem:ballView];
     
 }
 
@@ -258,19 +259,15 @@
         //move the ball back to the center
         ballView.center = CGPointMake(self.view.frame.size.width/2, self.view.frame.size.height/4);
         
-        float dx = 0.0;
+        float xVelocity = 100.0;
         
         if(arc4random()%2 == 0)
         {
-            dx = 200.0;
-        }
-        else
-        {
-            dx = -200.0;
+            xVelocity *= -1.0;
         }
         
         //add a downward velocity, either to left or to right
-        [ballDynamicBehavior addLinearVelocity:CGPointMake(dx, 500.0) forItem:ballView];
+        [ballDynamicBehavior addLinearVelocity:CGPointMake(xVelocity, 200.0) forItem:ballView];
         
         //update the ball
         [dynamicAnimator updateItemUsingCurrentState:ballView];
@@ -280,64 +277,28 @@
 
 #pragma mark - CollisionBehaviorDelegate Methods
 
-
 -(void)collisionBehavior:(UICollisionBehavior *)behavior beganContactForItem:(id<UIDynamicItem>)item1 withItem:(id<UIDynamicItem>)item2 atPoint:(CGPoint)p
 {
-    BlockView *block1 = (BlockView*)item1;
-    BlockView *block2 = (BlockView*)item2;
     
-    if([item2 isKindOfClass:[BlockView class]] && block2.hits <= 1)
+    if(([item1 isKindOfClass:[PaddleView class]] && [item2 isKindOfClass:[BallView class]]) ||
+        ([item1 isKindOfClass:[BallView class]] && [item2 isKindOfClass:[PaddleView class]]) )
     {
-        [UIView animateWithDuration:1.5 animations:^
-         {
-            block2.backgroundColor = [UIColor whiteColor];
-            [self decrementNumberOFBlocks];
-             
-         } completion:^(BOOL finished)
-         {
-             [collisionBehavior removeItem:item2];
-             [block2 removeFromSuperview];
-             
-         }];
+        [self collisionItemsAreBAllAndPaddle];
     }
-    else if ([item1 isKindOfClass:[BlockView class]] && block1.hits <= 1)
+    
+    else if([item1 isKindOfClass:[BlockView class]] && [item2 isKindOfClass:[BlockView class]] )
     {
-        [UIView animateWithDuration:1.5 animations:^
-         {
-             block1.backgroundColor = [UIColor whiteColor];
-             [self decrementNumberOFBlocks];
-         } completion:^(BOOL finished)
-         {
-             [collisionBehavior removeItem:item1];
-             [block1 removeFromSuperview];
-             
-         }];
+        //do nothing if two blocks hit each other
     }
-    else if ([item2 isKindOfClass:[BlockView class]] && block2.hits > 1)
+    
+    else if([item1 isKindOfClass:[BlockView class]] && [item2 isKindOfClass:[BallView class]])
     {
-        
-        [UIView animateWithDuration:1.0 animations:^
-         {
-             block2.backgroundColor = [UIColor orangeColor];
-             block2.hits--;
-         } completion:^(BOOL finished)
-         {
-             
-         }];
+        [self blockHitByBall:item1];
     }
-    else if ([item1 isKindOfClass:[BlockView class]] && block1.hits > 1)
+    else if([item1 isKindOfClass:[BallView class]] && [item2 isKindOfClass:[BlockView class]])
     {
-        [UIView animateWithDuration:1.0 animations:^
-         {
-             block1.backgroundColor = [UIColor orangeColor];
-             block1.hits--;
-         } completion:^(BOOL finished)
-         {
-             
-         }];
+        [self blockHitByBall:item2];
     }
-
-    //NSLog(@"number of blocks %i", numberOfBlocks);
     
     if(numberOfBlocks == 0)
     {
@@ -346,6 +307,81 @@
     }
     
 }
+
+
+/*
+ * When a block is hit by the ball, decrement the hits count of the block
+ * When the hit count reaches zero remove it from the screen and the collison
+ * behavior array
+ */
+-(void)blockHitByBall:(id<UIDynamicItem>)item
+{
+    BlockView* block = (BlockView*)item;
+    
+    if (block.hits <= 1)
+    {
+        [UIView animateWithDuration:1.5 animations:^
+         {
+             block.backgroundColor = [UIColor whiteColor];
+             [self decrementNumberOFBlocks];
+             
+         } completion:^(BOOL finished)
+         {
+             [collisionBehavior removeItem:item];
+             [block removeFromSuperview];
+         }];
+    }
+    else
+    {
+        [UIView animateWithDuration:1.0 animations:^
+         {
+             block.backgroundColor = [UIColor orangeColor];
+             block.hits--;
+         } completion:^(BOOL finished)
+         {
+             
+         }];
+    }
+}
+
+/*
+ * If the ball collides with the paddle, add an upward Y velocity to the ball
+ * alter the X velocity to go left or right to prevent the ball from just going
+ * straight up and down indefinitely
+ */
+-(void)collisionItemsAreBAllAndPaddle
+
+{
+    CGPoint ballLinearVelocity = [ballDynamicBehavior linearVelocityForItem:ballView];
+    //NSLog(@"initial velocity x:%f y:%f",ballLinearVelocity.x,ballLinearVelocity.y);
+    
+    CGPoint reverseBallLinearVelocity = CGPointMake((ballLinearVelocity.x*-1), (ballLinearVelocity.y*-1));
+    CGPoint ballUpwardTrajectory = CGPointMake([self calculateRandomFloatValueForXVelocity], -450.0);
+    
+    //
+    [ballDynamicBehavior addLinearVelocity:reverseBallLinearVelocity forItem:ballView];
+    [ballDynamicBehavior addLinearVelocity:ballUpwardTrajectory forItem:ballView];
+}
+
+
+/*
+ * Calcualte a random number bewteen 0 and 3, then multiply by 100
+ * This will serve as a random X velocity factor. It will alternate
+ * beteen negative and positive randomly
+ */
+-(float)calculateRandomFloatValueForXVelocity
+{
+    float xVelocity = (arc4random()%3 *100);
+    
+    if (arc4random()%2 == 0)
+    {
+        xVelocity *= -1.0;
+        NSLog(@"xVelocity: %f",xVelocity);
+    }
+    
+    return xVelocity;
+}
+
 
 #pragma mark - UIAlertViewDelegate Methods
 
