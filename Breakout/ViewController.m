@@ -69,7 +69,7 @@
     ballDynamicBehavior = [[UIDynamicItemBehavior alloc]initWithItems:@[ballView]];
     ballDynamicBehavior.allowsRotation = NO;
     ballDynamicBehavior.density = 0.30;
-    ballDynamicBehavior.elasticity = 1.0;
+    ballDynamicBehavior.elasticity = 1.2;
     ballDynamicBehavior.friction = 0.0;
     ballDynamicBehavior.resistance = 0.0;
     [dynamicAnimator addBehavior:ballDynamicBehavior];
@@ -125,9 +125,11 @@
     float yOrigin = 0.0;
     NSMutableArray *dynamicItemsArray = [NSMutableArray new];
     
-    for (int col = 0; col < numberOfRows; col++)
+    
+    //layout a grid of block
+    for (int row = 0; row < numberOfRows; row++)
     {
-        for (int row = 0; row < self.view.frame.size.width/blockWidth; row++)
+        for (int col = 0; col < self.view.frame.size.width/blockWidth; col++)
         {
             //create the block
             //set the blocks position it in the view, the frame takes to CGPoint
@@ -158,11 +160,13 @@
     
     //add the blocks to the block dynamic behavior
     blockDynamicBehavior = [[UIDynamicItemBehavior alloc]initWithItems:dynamicItemsArray];
-    blockDynamicBehavior.density = 1.0;
+    blockDynamicBehavior.density = 0.1;
     blockDynamicBehavior.elasticity = 0.5;
     blockDynamicBehavior.friction = 0.0;
     blockDynamicBehavior.allowsRotation = NO;
     dynamicItemsArray = nil;
+    
+    //NSLog(@"block items 3 density %f",blockDynamicBehavior[3].density);
 }
 
 
@@ -206,12 +210,12 @@
         }
     }
     //move the ball back to the center
-    ballView.center = CGPointMake(self.view.frame.size.width/2, self.view.frame.size.height/2);
+    ballView.center = CGPointMake(self.view.frame.size.width/2, self.view.frame.size.height/4);
     [dynamicAnimator updateItemUsingCurrentState:ballView];
-    [self addBlocksToMainView:NUMBER_ROWS withWidth:BLOCK_WIDTH_HARD height:BLOCK_HEIGHT_HARD];
     
     //add a downward velocity
     [ballDynamicBehavior addLinearVelocity:CGPointMake(200, 200.0) forItem:ballView];
+    [self addBlocksToMainView:NUMBER_ROWS withWidth:BLOCK_WIDTH_HARD height:BLOCK_HEIGHT_HARD];
     
 }
 
@@ -267,7 +271,7 @@
         }
         
         //add a downward velocity, either to left or to right
-        [ballDynamicBehavior addLinearVelocity:CGPointMake(xVelocity, 200.0) forItem:ballView];
+        [ballDynamicBehavior addLinearVelocity:CGPointMake(xVelocity, 250.0) forItem:ballView];
         
         //update the ball
         [dynamicAnimator updateItemUsingCurrentState:ballView];
@@ -300,12 +304,6 @@
         [self blockHitByBall:item2];
     }
     
-    if(numberOfBlocks == 0)
-    {
-        [self stopBallAtCurrentLocation];
-        [self raiseGameOverAlert];
-    }
-    
 }
 
 
@@ -329,6 +327,11 @@
          {
              [collisionBehavior removeItem:item];
              [block removeFromSuperview];
+             if(numberOfBlocks == 0)
+             {
+                 [self stopBallAtCurrentLocation];
+                 [self raiseGameOverAlert];
+             }
          }];
     }
     else
@@ -336,10 +339,10 @@
         [UIView animateWithDuration:1.0 animations:^
          {
              block.backgroundColor = [UIColor orangeColor];
-             block.hits--;
+             
          } completion:^(BOOL finished)
          {
-             
+             block.hits--;
          }];
     }
 }
@@ -371,12 +374,14 @@
  */
 -(float)calculateRandomFloatValueForXVelocity
 {
+    //move to right
     float xVelocity = (arc4random()%3 *100);
     
-    if (arc4random()%2 == 0)
+    if (ballView.center.x < paddleView.center.x)
     {
+        //move to left
         xVelocity *= -1.0;
-        NSLog(@"xVelocity: %f",xVelocity);
+//        NSLog(@"xVelocity: %f",xVelocity);
     }
     
     return xVelocity;

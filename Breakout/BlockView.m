@@ -15,7 +15,7 @@
     self = [super initWithFrame:frame];
     if (self) {
         // Initialization code
-        self.hits = arc4random()%3;
+        self.hits = arc4random()%2;
     }
     return self;
 }
