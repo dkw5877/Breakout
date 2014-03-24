@@ -13,13 +13,23 @@
 
 #define BLOCK_WIDTH_EASY 40
 #define BLOCK_HEIGHT_EASY 40
+#define BLOCK_WIDTH_HARD 10
+#define BLOCK_HEIGHT_HARD 40
 #define NUMBER_ROWS 1
 
-@interface ViewController () 
+
+#define VECTOR_UP (0.0,-1.0)
+#define VECTOR_DOWN (0.0,1.0)
+#define VECTOR_DOWN_RIGHT  (0.5, 1.0)
+#define VECTOR_DOWN_LEFT (0.0,1.0)
+
+
+@interface ViewController () <UIAlertViewDelegate>
 {
     UIDynamicAnimator *dynamicAnimator;
     UIPushBehavior* pushBehavior;
     UICollisionBehavior *collisionBehavior;
+    UIGravityBehavior *gravityBehavior;
     IBOutlet BallView *ballView;
     IBOutlet PaddleView *paddleView;
     UIDynamicItemBehavior* ballDynamicBehavior;
@@ -36,6 +46,8 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+    
+    numberOfBlocks = 0;
     
     dynamicAnimator = [[UIDynamicAnimator alloc] initWithReferenceView:self.view];
     
@@ -56,7 +68,7 @@
 {
     ballDynamicBehavior = [[UIDynamicItemBehavior alloc]initWithItems:@[ballView]];
     ballDynamicBehavior.allowsRotation = NO;
-    ballDynamicBehavior.density = 1.0;
+    ballDynamicBehavior.density = 0.30;
     ballDynamicBehavior.elasticity = 1.0;
     ballDynamicBehavior.friction = 0.0;
     ballDynamicBehavior.resistance = 0.0;
@@ -95,20 +107,20 @@
 }
 
 
--(void)resetPushBehavior
+#pragma mark - Method to modify existing behaviors
+
+-(void)resetPushBehaviorWithVector:(CGVector)vector
 {
-    
-    CGVector reversedDirection = CGVectorMake(pushBehavior.pushDirection.dx*-1.0f,pushBehavior.pushDirection.dy*-1.0f);
+    CGVector reversedDirection = vector;
     pushBehavior = nil;
     pushBehavior = [[UIPushBehavior alloc]initWithItems:@[ballView] mode:UIPushBehaviorModeInstantaneous];
     pushBehavior.pushDirection = reversedDirection;
     pushBehavior.active = YES;
     pushBehavior.magnitude =  0.1;
     [dynamicAnimator addBehavior:pushBehavior];
-    
 }
 
-
+#pragma mark - Helper methods to create bricks with random colors
 /*
  * Generate a matrix of BlockView objects as the bricks
  * @param void
@@ -117,9 +129,10 @@
 -(void)addBlocksToMainView
 {
     float yFudgeFactor = 0.0005;
-    float xFudgeFactor = 0.001;
+    float xFudgeFactor = 0.01;
     float xOrigin = 0.0;
     float yOrigin = 0.0;
+    NSMutableArray *dynamicItemsArray = [NSMutableArray new];
     
     for (int col = 0; col < NUMBER_ROWS; col++)
     {
@@ -132,6 +145,9 @@
             BlockView *block = [[BlockView alloc]initWithFrame:CGRectMake(xOrigin, yOrigin, BLOCK_WIDTH_EASY, BLOCK_HEIGHT_EASY)];
             block.backgroundColor = [self chooseARandomColorForBlock];
             [self.view addSubview:block];
+            
+            //add the block to the array
+            [dynamicItemsArray addObject:block];
             
             //add the block to the collison array
             [collisionBehavior addItem:block];
@@ -147,6 +163,12 @@
         //increment the y origin by the block height
         yOrigin += BLOCK_HEIGHT_EASY + yFudgeFactor;
     }
+    
+    //add the blocks to the block dynamic behavior
+    blockDynamicBehavior = [[UIDynamicItemBehavior alloc]initWithItems:dynamicItemsArray];
+    blockDynamicBehavior.density = 1000.0;
+    blockDynamicBehavior.elasticity = 0.0;
+    dynamicItemsArray = nil;
 }
 
 
@@ -165,9 +187,8 @@
     return color;
 }
 
+
 /*
- *
- *
  *
  */
 -(BOOL)shouldStartAgain
@@ -183,26 +204,35 @@
  */
 -(void)resetGame
 {
-//    //kill everything
-//    dynamicAnimator = nil;
-//    collisionBehavior = nil;
-//    ballDynamicBehavior = nil;
-//    paddleDynamicBehavior = nil;
-//    pushBehavior = nil;
-//    
-//    [self addBlocksToMainView];
-//    
-//    dynamicAnimator = [[UIDynamicAnimator alloc] initWithReferenceView:self.view];
-//
-//    [self initializeCollisionBehavior];
-//    
-//    [self inititalizeDynamicBallBehavior];
-//    
-//    [self initializeDynamicPaddleBehavior];
-//    
-//    [self initializePushBehavior];
+    //move the ball back to the center
+    ballView.center = CGPointMake(self.view.frame.size.width/2, self.view.frame.size.height/2);
+    [dynamicAnimator updateItemUsingCurrentState:ballView];
+    [self addBlocksToMainView];
     
+    //add a downward velocity
+    [ballDynamicBehavior addLinearVelocity:CGPointMake(200, 400.0) forItem:ballView];
     
+}
+
+
+- (void)decrementNumberOFBlocks
+{
+    if (numberOfBlocks > 0)
+    {
+        numberOfBlocks--;
+    }
+}
+
+
+/*
+ * Stop ball moving by reversing the linear velocity to zero.
+ */
+-(void)stopBallAtCurrentLocation
+{
+    //stop the ball from moving
+    CGPoint ballLinearVelocity = [ballDynamicBehavior linearVelocityForItem:ballView];
+    CGPoint reverseBallLinearVelocity = CGPointMake((ballLinearVelocity.x*-1), (ballLinearVelocity.y*-1));
+    [ballDynamicBehavior addLinearVelocity:reverseBallLinearVelocity forItem:ballView];
 }
 
 #pragma mark - Actions
@@ -222,56 +252,115 @@
     //origin.y is the y coordinate relative to the main UIView
     if (ballView.frame.origin.y >= (self.view.frame.size.height-(ballView.frame.size.height*2)))
     {
-        ballView.center = CGPointMake(self.view.frame.size.width/2, self.view.frame.size.height/2);
+        //stop the ball
+        [self stopBallAtCurrentLocation];
+        
+        //move the ball back to the center
+        ballView.center = CGPointMake(self.view.frame.size.width/2, self.view.frame.size.height/4);
+        
+        float dx = 0.0;
+        
+        if(arc4random()%2 == 0)
+        {
+            dx = 200.0;
+        }
+        else
+        {
+            dx = -200.0;
+        }
+        
+        //add a downward velocity, either to left or to right
+        [ballDynamicBehavior addLinearVelocity:CGPointMake(dx, 500.0) forItem:ballView];
+        
+        //update the ball
         [dynamicAnimator updateItemUsingCurrentState:ballView];
-        [self resetPushBehavior];
     }
 }
 
+
+#pragma mark - CollisionBehaviorDelegate Methods
 
 
 -(void)collisionBehavior:(UICollisionBehavior *)behavior beganContactForItem:(id<UIDynamicItem>)item1 withItem:(id<UIDynamicItem>)item2 atPoint:(CGPoint)p
 {
-    BlockView *block = (BlockView*)item2;
+    BlockView *block1 = (BlockView*)item1;
+    BlockView *block2 = (BlockView*)item2;
     
-    if([item2 isKindOfClass:[BlockView class]] && block.hits <= 1)
+    if([item2 isKindOfClass:[BlockView class]] && block2.hits <= 1)
     {
         [UIView animateWithDuration:1.5 animations:^
          {
-             block.backgroundColor = [UIColor whiteColor];
+            block2.backgroundColor = [UIColor whiteColor];
+            [self decrementNumberOFBlocks];
+             
          } completion:^(BOOL finished)
          {
              [collisionBehavior removeItem:item2];
-             [block removeFromSuperview];
-             numberOfBlocks--;
+             [block2 removeFromSuperview];
+             
          }];
     }
-    else if ([item2 isKindOfClass:[BlockView class]] && block.hits >1)
+    else if ([item1 isKindOfClass:[BlockView class]] && block1.hits <= 1)
+    {
+        [UIView animateWithDuration:1.5 animations:^
+         {
+             block1.backgroundColor = [UIColor whiteColor];
+             [self decrementNumberOFBlocks];
+         } completion:^(BOOL finished)
+         {
+             [collisionBehavior removeItem:item1];
+             [block1 removeFromSuperview];
+             
+         }];
+    }
+    else if ([item2 isKindOfClass:[BlockView class]] && block2.hits > 1)
     {
         
         [UIView animateWithDuration:1.0 animations:^
          {
-             block.backgroundColor = [UIColor orangeColor];
-             block.hits--;
+             block2.backgroundColor = [UIColor orangeColor];
+             block2.hits--;
          } completion:^(BOOL finished)
          {
              
          }];
-        
+    }
+    else if ([item1 isKindOfClass:[BlockView class]] && block1.hits > 1)
+    {
+        [UIView animateWithDuration:1.0 animations:^
+         {
+             block1.backgroundColor = [UIColor orangeColor];
+             block1.hits--;
+         } completion:^(BOOL finished)
+         {
+             
+         }];
+    }
+
+    //NSLog(@"number of blocks %i", numberOfBlocks);
+    
+    if(numberOfBlocks == 0)
+    {
+        [self stopBallAtCurrentLocation];
+        [self raiseGameOverAlert];
     }
     
-    if(numberOfBlocks ==0)
-    {
-        [self resetGame];
-    }
 }
 
+#pragma mark - UIAlertViewDelegate Methods
 
--(CGVector)createRandomDownwardVector
+-(void)raiseGameOverAlert
 {
-    float dx = ((float)rand() / RAND_MAX);
-    float dy = ((float)rand() / RAND_MAX);
-    return CGVectorMake(dx, dy);
+    UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"Game Over" message:@"All blocks cleared, restart?" delegate:self cancelButtonTitle:@"OK" otherButtonTitles:@"Start New Game", nil];
+    
+    [alertView show];
+}
+
+-(void) alertView:(UIAlertView *)alertView didDismissWithButtonIndex:(NSInteger)buttonIndex
+{
+    if (buttonIndex == 1) {
+        [self resetGame];
+    }
 }
 
 @end
