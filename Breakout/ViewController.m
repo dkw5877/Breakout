@@ -123,7 +123,7 @@
     float xFudgeFactor = 0.01;
     float xOrigin = 0.0;
     float yOrigin = 0.0;
-    NSMutableArray *dynamicItemsArray = [NSMutableArray new];
+    NSMutableArray *dynamicBlockItemsArray = [NSMutableArray new];
     
     
     //layout a grid of block
@@ -141,7 +141,7 @@
             [self.view addSubview:block];
             
             //add the block to the array
-            [dynamicItemsArray addObject:block];
+            [dynamicBlockItemsArray addObject:block];
             
             //add the block to the collison array
             [collisionBehavior addItem:block];
@@ -159,12 +159,12 @@
     }
     
     //add the blocks to the block dynamic behavior
-    blockDynamicBehavior = [[UIDynamicItemBehavior alloc]initWithItems:dynamicItemsArray];
+    blockDynamicBehavior = [[UIDynamicItemBehavior alloc]initWithItems:dynamicBlockItemsArray];
     blockDynamicBehavior.density = 0.1;
     blockDynamicBehavior.elasticity = 0.5;
     blockDynamicBehavior.friction = 0.0;
     blockDynamicBehavior.allowsRotation = NO;
-    dynamicItemsArray = nil;
+    dynamicBlockItemsArray = nil;
     
     //NSLog(@"block items 3 density %f",blockDynamicBehavior[3].density);
 }
